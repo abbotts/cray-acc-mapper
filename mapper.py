@@ -69,6 +69,8 @@ def main():
     from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
     parser = argparse.ArgumentParser("Parse data movement")
     parser.add_argument("infile", nargs=1, type=str, help="Timestamped input file from CRAY_ACC_DEBUG output")
+    parser.add_argument("--hmax", type=str, help="Drop host addresses above this hex address",default=None)
+    parser.add_argument("--mark", type=str, help="Make a specific device address in the plot",default=None)
 
     options = parser.parse_args()
 
@@ -76,8 +78,9 @@ def main():
     if mapped == {}:
         mapped[0] = mappedRegion(np.inf, 0, 0, 0)
         mapped[0].unmap_time = 0
+
     mintime = min(min(mapped.values(), key=lambda x: x.map_time).map_time, min(finalized, key=lambda x: x.map_time).map_time)
-    maxtime = max(max(mapped.values(), key=lambda x: x.unmap_time).unmap_time, max(finalized, key=lambda x: x.unmap_time).unmap_time)
+    maxtime = max(max(mapped.values(), key=lambda x: x.map_time).map_time, max(finalized, key=lambda x: x.unmap_time).unmap_time)
     print(mintime, maxtime)
     #mintime = min(finalized, key=lambda x: x.map_time).map_time
     #maxtime = max(finalized, key=lambda x: x.unmap_time).unmap_time
@@ -86,15 +89,30 @@ def main():
     for entry in mapped.values():
         entry.renormalize_time(mintime, maxtime)
 
+    print(mapped)
     xvals = np.array([x.host for x in finalized])
     yvals = np.array([x.acc for x in finalized])
     bottoms = np.array([x.map_time for x in finalized])
     tops = np.array([x.unmap_time for x in finalized])
     sizes = np.array([x.size for x in finalized])
-    
+    if (options.hmax):
+        thresholds = xvals <int(options.hmax,16)
+        xvals = xvals[thresholds]
+        yvals = yvals[thresholds]
+        bottoms = bottoms[thresholds]
+        tops = tops[thresholds]
+        sizes = sizes[thresholds]
+
+
+    nf_xvals = np.array([x.host for x in mapped.values()])
+    nf_yvals = np.array([x.acc for x in mapped.values()])
+    nf_bottoms = np.array([x.map_time for x in mapped.values()])
+    nf_tops = np.array([x.unmap_time for x in mapped.values()])
+    nf_sizes = np.array([x.size for x in mapped.values()])
+
     print(bottoms)
 
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(16, 8))
     #ax1 = fig.add_subplot(121, projection='3d')
     ax2 = fig.add_subplot(111)
 
@@ -102,12 +120,19 @@ def main():
     #ax1.set_xlabel("Host Address")
     #ax1.set_ylabel("Accelerator Address")
     #ax1.set_zlabel("Program time")
+    #ax1.set_xscale('log',basex=2)
+    #ax1.set_yscale('log',basex=2)
 
     ax2.bar(yvals, tops - bottoms, width=sizes, bottom=bottoms, align='edge')
     ax2.scatter(yvals, bottoms, zorder=2.5)
+    ax2.bar(nf_yvals, nf_tops - nf_bottoms, width=nf_sizes, bottom=nf_bottoms, align='edge',color='red')
+    ax2.scatter(nf_yvals, nf_bottoms, zorder=2.5)
+
     ax2.set_xlabel("Accelerator Address")
     ax2.set_ylabel("Program time")
-
+    #ax2.set_xscale('log',basex=2)
+    if(options.mark):
+        plt.axvline(x=int(options.mark,16),color='red')
     plt.show()
 
 
