@@ -4,7 +4,14 @@ For extracting information from the CRAY OpenMP runtime debug output
 Source modifications
 ----------------------
 It's very important that the output you feed to the mapper only be from a single MPI rank. Otherwise the present table is going to be a mess. 
-You can append a unique prefix to the CRAY_ACC_DEBUG output using `cray_acc_set_debug_global_prefix` from the Cray OpenMP runtime library:
+
+There is a slurm option that will do this automatically:
+```
+srun -l
+```
+Then you can use standard tools to isolate it down. For example, `grep -E "^15:" <file> > PE15.log` to get the rank 15 output. 
+
+Another option is to append a unique prefix to the CRAY_ACC_DEBUG output using `cray_acc_set_debug_global_prefix` from the Cray OpenMP runtime library:
 
 ```
     #include <omp.h>
@@ -30,7 +37,9 @@ You also need to modify your run line to such that you prepend a timestamp to an
     <your command> 2>&1 | python3 -c 'import sys,time;sys.stdout.write("".join(( " ".join((str(time.clock_gettime(time.CLOCK_MONOTONIC)), line))) for line in sys.stdin ))'
 ```
 
-Finally, you'll probably need to do something to synchronize output so you don't have processes clobbering each other. For `aprun` that can be `-T`. I'm not sure how to do it for slurm yet. For example, here's my batch script for LULESH on Kay:
+Finally, you'll probably need to do something to synchronize output so you don't have processes clobbering each other. For `aprun` that can be `-T`. I'm not sure how to do it for slurm yet, but if you use the `-l` option suggested above it should work.
+
+For example, here's my batch script for LULESH on Kay:
 
 ```
     #! /bin/bash
@@ -76,7 +85,11 @@ And here's a sample of the output it produces that the mapper can use:
 
 Prerequisites
 ----------------
-You need a Python 3 installation with matplotlib and numpy installed. It can be your laptop, that's fine.
+You need a Python 3 installation with matplotlib and numpy installed. It can be your laptop, that's fine. An easy way to get running if you don't have them installed already is:
+
+```
+pip3 install --user numpy matplotlib
+```
 
 Using the mapper
 ------------------
@@ -85,4 +98,18 @@ Grep and redirect the output such that you have a file containing output from on
 ```
     python3 mapper.py ACC_PE1.log
 ```
+Use the script's help option to see other options:
+```
+    python3 mapper.py --help
+    usage: Parse data movement [-h] [--hmax HMAX] [--mark MARK] [--dumptable]
+                               infile
 
+    positional arguments:
+    infile       Timestamped input file from CRAY_ACC_DEBUG output
+
+    optional arguments:
+    -h, --help   show this help message and exit
+    --hmax HMAX  Drop host addresses above this hex address
+    --mark MARK  Make a specific device address in the plot
+    --dumptable  Dump table entries to stdout during plotting
+```
