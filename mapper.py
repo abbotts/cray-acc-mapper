@@ -65,6 +65,7 @@ def main():
     import argparse
     import numpy as np
     import matplotlib.pyplot as plt
+    import matplotlib.ticker as ticker
     # This import registers the 3D projection, but is otherwise unused.
     from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
     parser = argparse.ArgumentParser("Parse data movement")
@@ -94,8 +95,8 @@ def main():
             print(entry)
 
     print(mapped)
-    xvals = np.array([x.host for x in finalized])
-    yvals = np.array([x.acc for x in finalized])
+    xvals = np.array([x.host for x in finalized],dtype=int)
+    yvals = np.array([x.acc for x in finalized],dtype=int)
     bottoms = np.array([x.map_time for x in finalized])
     tops = np.array([x.unmap_time for x in finalized])
     sizes = np.array([x.size for x in finalized])
@@ -108,11 +109,11 @@ def main():
         sizes = sizes[thresholds]
 
 
-    nf_xvals = np.array([x.host for x in mapped.values()])
-    nf_yvals = np.array([x.acc for x in mapped.values()])
+    nf_xvals = np.array([x.host for x in mapped.values()],dtype=int)
+    nf_yvals = np.array([x.acc for x in mapped.values()],dtype=int)
     nf_bottoms = np.array([x.map_time for x in mapped.values()])
     nf_tops = np.array([x.unmap_time for x in mapped.values()])
-    nf_sizes = np.array([x.size for x in mapped.values()])
+    nf_sizes = np.array([x.size for x in mapped.values()],dtype=int)
 
     print(bottoms)
 
@@ -131,7 +132,14 @@ def main():
     ax2.scatter(yvals, bottoms, zorder=2.5)
     ax2.bar(nf_yvals, nf_tops - nf_bottoms, width=nf_sizes, bottom=nf_bottoms, align='edge',color='red')
     ax2.scatter(nf_yvals, nf_bottoms, zorder=2.5)
+ 
+    def to_hex(x, pos):
+        return '%x' % int(x)
 
+    fmt = ticker.FuncFormatter(to_hex)
+    #ax2.get_xaxis().set_major_locator(ticker.MultipleLocator(1))
+    ax2.get_xaxis().set_major_formatter(fmt)
+    
     ax2.set_xlabel("Accelerator Address")
     ax2.set_ylabel("Program time")
     #ax2.set_xscale('log',basex=2)
