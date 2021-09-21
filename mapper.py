@@ -6,7 +6,7 @@ class mappedRegion(object):
         self.acc = accbase
         self.size = bsize
     def __repr__(self):
-        return "Region at host address %d of size %d B mapped to device address %d from time %g to %g" %(self.host, self.size, self.acc, self.map_time, self.unmap_time)
+        return "Region at host address %s of size %d B mapped to device address %s from time %g to %g" %(hex(self.host), self.size, hex(self.acc), self.map_time, self.unmap_time)
     def renormalize_time(self, tstart, tend):
         self.map_time -= tstart
         if self.unmap_time > 0:
@@ -71,7 +71,7 @@ def main():
     parser.add_argument("infile", nargs=1, type=str, help="Timestamped input file from CRAY_ACC_DEBUG output")
     parser.add_argument("--hmax", type=str, help="Drop host addresses above this hex address",default=None)
     parser.add_argument("--mark", type=str, help="Make a specific device address in the plot",default=None)
-
+    parser.add_argument("--dumptable", action="store_true", default=False, help="Dump table entries to stdout during plotting")
     options = parser.parse_args()
 
     mapped, finalized = parse_present(options.infile[0])
@@ -86,8 +86,12 @@ def main():
     #maxtime = max(finalized, key=lambda x: x.unmap_time).unmap_time
     for entry in finalized:
         entry.renormalize_time(mintime, maxtime)
+        if (options.dumptable):
+            print(entry)
     for entry in mapped.values():
         entry.renormalize_time(mintime, maxtime)
+        if (options.dumptable):
+            print(entry)
 
     print(mapped)
     xvals = np.array([x.host for x in finalized])
