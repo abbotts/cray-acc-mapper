@@ -113,3 +113,24 @@ Use the script's help option to see other options:
     --mark MARK  Make a specific device address in the plot
     --dumptable  Dump table entries to stdout during plotting
 ```
+
+Understanding the output
+-------------------------
+The script currently does some debug prints (which I need to clean up) and produces a plot of the device addresses mapped by the runtime and the application time. If an address was both mapped and unmapped (removed from the present table during application execution) the bar will be blue. If it was mapped but not unmapped it will be red.
+
+An region that is mapped but not unmapped might be bug, for example an `enter data` region that was mistakenly not paired for an `exit data`. For this reason one of the debug prints is the values of the open present table entries at application exit, so you can search back through the runtime output to find where you mapped these and if they make sense. Keep in mind that open entried might not be bugs; for example a `declare target` Fortran module variable will be mapped at application start and never unmapped. If the application terminated prematurely it's very likely there will be many unmapped entries.
+
+Orange dots indicate the initial point of mapping. These are on the plot because otherwise it can be hard to distinguish many small maps from one large map.
+
+There's a sample output included:
+```
+    $ python3  mapper.py  sample.log
+```
+
+Which produces the plot:
+
+![sample plot](sample.png)
+
+Issues
+-------
+This is a quick and dirty debugging tool. If you have issues, reach out to stephen.abbott@hpe.com
